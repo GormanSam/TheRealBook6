@@ -1,0 +1,54 @@
+---
+title: "Extracting a CSV for the Real Book using the Spotify API"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The Real Book is a reference for jazz standards, containing their chord progressions and melody. I will be using the Real Book version 6, which I found [here](https://escuelasuperiordejazz.com/wp-content/uploads/2020/03/The-real-book-sixth-edition.pdf).
+
+The real work here has to be attributed to spotify user [skathis](https://open.spotify.com/user/skathis), who compiled a spotify playlist for the tracks in the Real Book, which can be found [here](https://open.spotify.com/playlist/50BquW1FAVYhYx4KWLgwGD).
+
+We first import the required libraries. I will be using the R wrapper for the api [SpotifyR](https://www.rdocumentation.org/packages/spotifyr/versions/2.2.3) as it makes the whole process hastle free.
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(spotifyr)
+```
+Then we have to set our ID and Secret key, which we attain by registering for the api on the spotify website. These are personal to your account and I will change mine after creating this document!
+```{r warning=FALSE}
+Sys.setenv(SPOTIFY_CLIENT_ID = 'ac9b85f2ccca4a1eaa9da9cc4f57e8c5')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'aeb9686b055b429b94b205941c922110')
+
+```
+Next is to get the data. The spotify api makes this really simple. I just get the analysis for the playlist and select the relevant information:
+```{r warning=FALSE}
+RealBook6 = get_playlist_audio_features(skathis,"50BquW1FAVYhYx4KWLgwGD") |>
+            select( track.name, track.artists,track.duration_ms, time_signature,
+                    tempo, key, mode, loudness, danceability, energy, speechiness,
+                    acousticness, instrumentalness, liveness, valence,
+                    track.popularity, track.album.name, track.album.release_date)
+
+head(RealBook6)
+
+```
+By looking at the dataframe we see that the variable track.artists is a list, which will make it hard to use and analyse. We therefore do a bit of data cleaning;
+```{r warning=FALSE}
+#mutate doesn't work here :(
+for ( i in 1:nrow(RealBook6)){
+  RealBook6$track.artists[i] = RealBook6$track.artists[[i]]$name
+  if (word(RealBook6$track.artists[i],-1) %in% c("Quartet","Quintet","Trio") == TRUE){
+    RealBook6$track.artists[i] = word(RealBook6$track.artists[i], end=-2)
+  }
+}
+RealBook6 = RealBook6 |> 
+            mutate(track.artists = as.character(track.artists))
+```
+Notice we also remove words such as Quartet, Quintet or Trio. This is so we don't get artists names like "John Coltrane Quartet", when we really only want John Coltrane. We also have to change the track.artist column to ensure that we still don't have list objects, which can't convert to csv.
+
+Then we export to csv:
+```{r warning=FALSE}
+#write.csv(RealBook6, r"(\Desktop\RealBook.csv)")
+```
+Note the use of the R string literal r"()".
