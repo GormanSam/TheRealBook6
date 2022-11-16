@@ -1,7 +1,7 @@
 # TheRealBook6
 Creating a csv file for the Real Book 6 using the Apotify API
 
-See
+See https://gormansam.github.io/TheRealBook6/, for the markdown file.
 
 A simple method for extracting a csv for the Real Book 6 using the Spotify API.
 
